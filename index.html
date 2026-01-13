@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alphabet Shooter - Prompt Edition</title>
+    <title>Alphabet Shooter - 4 Letters Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -107,9 +107,9 @@
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 style="font-size: 4rem; color: #4834d4; margin: 0;">Alphabet Typing Game</h1>
-        <p id="msg-text" style="font-size: 1.5rem; color: #686de0; margin-bottom: 30px;">พิมพ์ตัวอักษรที่เห็นให้ไวที่สุด!</p>
-        <button id="start-btn">เริ่มเล่นเลย!</button>
+        <h1 style="font-size: 4rem; color: #4834d4; margin: 0;">Alpha Dash</h1>
+        <p id="msg-text" style="font-size: 1.5rem; color: #686de0; margin-bottom: 30px;">Type the 4 letters you see as fast as you can!</p>
+        <button id="start-btn">PLAY NOW</button>
     </div>
 
     <script>
@@ -126,7 +126,6 @@
         let timerInterval;
         let audioCtx;
 
-        // ฟังก์ชันสร้างเสียง
         function playSound(freq, type, duration, vol) {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -148,12 +147,14 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(100, now);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                osc.frequency.setValueAtTime(120, now);
+                // ปรับระดับเสียง (vol) จากเดิม 0.1 เป็น 0.4 เพื่อให้เสียง Buzz ดังขึ้นชัดเจน
+                gain.gain.setValueAtTime(0.4, now); 
+                gain.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                osc.start(); osc.stop(now + 0.2);
+                osc.start(); 
+                osc.stop(now + 0.3);
             },
             end: () => [392, 523, 659].forEach((f, i) => setTimeout(() => playSound(f, 'sine', 0.3, 0.1), i * 150))
         };
@@ -174,80 +175,4 @@
             el.style.top = (25 + Math.random() * 60) + '%';
             
             gameArea.appendChild(el);
-            return { char, el };
-        }
-
-        function startGame() {
-            // เริ่มต้นระบบเสียงเมื่อมีการกดปุ่ม
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-
-            score = 0;
-            timeLeft = 60;
-            gameActive = true;
-            letters = [];
-            gameArea.innerHTML = '';
-            scoreEl.innerText = score;
-            timerEl.innerText = timeLeft;
-overlay.classList.add('hidden');
-
-            // สร้างตัวอักษรเริ่มต้น 3 ตัว
-            for (let i = 0; i < 3; i++) {
-                letters.push(createLetter());
-            }
-
-            // เริ่มนับเวลาถอยหลัง
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    endGame();
-                }
-            }, 1000);
-        }
-
-        function endGame() {
-            gameActive = false;
-            clearInterval(timerInterval);
-            sounds.end();
-            overlay.classList.remove('hidden');
-            document.querySelector('h1').innerText = "WELL DONE!";
-            document.getElementById('msg-text').innerText = `Your final score is: ${score}`;
-            startBtn.innerText = "PLAY AGAIN";
-        }
-
-        // เชื่อมปุ่มเริ่มเกม
-        startBtn.addEventListener('click', startGame);
-
-        // ระบบตรวจจับการพิมพ์
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-            
-            const key = e.key.toUpperCase();
-            // ตรวจสอบว่าเป็นตัวอักษร A-Z เท่านั้น
-            if (!/^[A-Z]$/.test(key)) return;
-
-            const index = letters.findIndex(l => l.char === key);
-            
-            if (index !== -1) {
-                sounds.correct();
-                // ลบตัวที่กดถูกและสุ่มตัวใหม่
-                letters[index].el.remove();
-                letters.splice(index, 1);
-                letters.push(createLetter());
-                
-                score++;
-                scoreEl.innerText = score;
-            } else {
-                // กรณีพิมพ์ผิด: เล่นเสียง Buzz และหน้าจอกระพริบสีแดง
-                sounds.wrong();
-                document.body.style.backgroundColor = '#fab1a0';
-                setTimeout(() => {
-                    document.body.style.backgroundColor = '#f0f9ff';
-                }, 100);
-            }
-        });
-    </script>
-</body>
-</html>
+            return { char,
