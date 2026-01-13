@@ -189,3 +189,65 @@
             gameArea.innerHTML = '';
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
+overlay.classList.add('hidden');
+
+            // สร้างตัวอักษรเริ่มต้น 3 ตัว
+            for (let i = 0; i < 3; i++) {
+                letters.push(createLetter());
+            }
+
+            // เริ่มนับเวลาถอยหลัง
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            sounds.end();
+            overlay.classList.remove('hidden');
+            document.querySelector('h1').innerText = "WELL DONE!";
+            document.getElementById('msg-text').innerText = `Your final score is: ${score}`;
+            startBtn.innerText = "PLAY AGAIN";
+        }
+
+        // เชื่อมปุ่มเริ่มเกม
+        startBtn.addEventListener('click', startGame);
+
+        // ระบบตรวจจับการพิมพ์
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+            
+            const key = e.key.toUpperCase();
+            // ตรวจสอบว่าเป็นตัวอักษร A-Z เท่านั้น
+            if (!/^[A-Z]$/.test(key)) return;
+
+            const index = letters.findIndex(l => l.char === key);
+            
+            if (index !== -1) {
+                sounds.correct();
+                // ลบตัวที่กดถูกและสุ่มตัวใหม่
+                letters[index].el.remove();
+                letters.splice(index, 1);
+                letters.push(createLetter());
+                
+                score++;
+                scoreEl.innerText = score;
+            } else {
+                // กรณีพิมพ์ผิด: เล่นเสียง Buzz และหน้าจอกระพริบสีแดง
+                sounds.wrong();
+                document.body.style.backgroundColor = '#fab1a0';
+                setTimeout(() => {
+                    document.body.style.backgroundColor = '#f0f9ff';
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
