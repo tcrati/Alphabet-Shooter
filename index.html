@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alphabet Shooter - 4 Letters Edition</title>
+    <title>Alphabet Shooter - Giant Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -39,30 +39,32 @@
             padding: 10px 40px;
             border-radius: 50px;
             box-shadow: 0 8px 0 rgba(0,0,0,0.05);
-            font-weight: 600;
+            font-weight: 900;
             z-index: 50;
+            border: 4px solid #7ed6df;
         }
 
-        #timer { color: var(--timer-color); font-size: 2.2rem; }
-        #score { color: var(--score-color); font-size: 2.2rem; }
+        #timer { color: var(--timer-color); font-size: 2.5rem; }
+        #score { color: var(--score-color); font-size: 2.5rem; }
 
         #game-area { position: relative; width: 100vw; height: 100vh; }
 
         .letter {
             position: absolute;
-            font-size: 5rem;
+            font-size: 7rem; /* ขยายขนาดตัวอักษรให้ใหญ่ขึ้นมาก */
             font-weight: 900;
             color: white;
-            text-shadow: 3px 3px 0px rgba(0,0,0,0.1);
-            border-radius: 25px;
-            width: 120px;
-            height: 120px;
+            text-shadow: 5px 5px 0px rgba(0,0,0,0.15);
+            border-radius: 35px;
+            width: 160px; /* ขยายขนาดกล่อง */
+            height: 160px;
             display: flex;
             align-items: center;
             justify-content: center;
             transform: translate(-50%, -50%);
             user-select: none;
             transition: transform 0.1s, opacity 0.1s;
+            cursor: pointer;
         }
 
         #overlay {
@@ -71,45 +73,46 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(255, 255, 255, 0.96);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 100;
+            text-align: center;
         }
 
         button {
             font-family: 'Prompt', sans-serif;
             background: #ffbe76;
             border: none;
-            padding: 15px 50px;
-            font-size: 2rem;
+            padding: 20px 60px;
+            font-size: 2.5rem;
             color: white;
             font-weight: 900;
-            border-radius: 20px;
+            border-radius: 30px;
             cursor: pointer;
-            box-shadow: 0 8px 0 #f0932b;
+            box-shadow: 0 10px 0 #f0932b;
+            transition: all 0.1s;
         }
 
-        button:hover { background: #ffca8e; }
-        button:active { transform: translateY(4px); box-shadow: 0 4px 0 #f0932b; }
+        button:active { transform: translateY(6px); box-shadow: 0 4px 0 #f0932b; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
     <div id="stats">
-        <div>เวลา: <span id="timer">60</span></div>
-        <div>คะแนน: <span id="score">0</span></div>
+        <div>TIME: <span id="timer">60</span></div>
+        <div>SCORE: <span id="score">0</span></div>
     </div>
 
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 style="font-size: 4rem; color: #4834d4; margin: 0;">Alphabet Typing</h1>
-        <p id="msg-text" style="font-size: 1.5rem; color: #686de0; margin-bottom: 30px;">พิมพ์ตัวอักษร 4 ตัวที่คุณเห็นให้เร็วที่สุดเท่าที่จะทำได้!</p>
-        <button id="start-btn">เริ่มเล่นกันเลย</button>
+        <h1 style="font-size: 5rem; color: #4834d4; margin: 0;">ALPHA BLAST!</h1>
+        <p id="msg-text" style="font-size: 1.8rem; color: #686de0; margin-bottom: 40px;">Find and type the 4 big letters!</p>
+        <button id="start-btn">GO!</button>
     </div>
 
     <script>
@@ -125,7 +128,9 @@
         let letters = [];
         let timerInterval;
         let audioCtx;
+        let bgmInterval;
 
+        // ฟังก์ชันสร้างเสียงเอฟเฟกต์
         function playSound(freq, type, duration, vol) {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -140,23 +145,33 @@
             osc.stop(audioCtx.currentTime + duration);
         }
 
+        // ฟังก์ชันดนตรีประกอบ (Simple BGM Loop)
+        function playBGM() {
+            const melody = [261, 329, 392, 523, 349, 440, 392, 329];
+            let step = 0;
+            bgmInterval = setInterval(() => {
+                if(gameActive) {
+                    playSound(melody[step % melody.length], 'triangle', 0.4, 0.03);
+                    step++;
+                }
+            }, 500);
+        }
+
         const sounds = {
-            correct: () => playSound(523, 'sine', 0.1, 0.1),
+            correct: () => playSound(880, 'sine', 0.1, 0.1),
             wrong: () => {
                 const now = audioCtx.currentTime;
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(120, now);
-                // ปรับระดับเสียง (vol) จากเดิม 0.1 เป็น 0.4 เพื่อให้เสียง Buzz ดังขึ้นชัดเจน
-                gain.gain.setValueAtTime(0.4, now); 
+                gain.gain.setValueAtTime(0.5, now); 
                 gain.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                osc.start(); 
-                osc.stop(now + 0.3);
+                osc.start(); osc.stop(now + 0.3);
             },
-            end: () => [392, 523, 659].forEach((f, i) => setTimeout(() => playSound(f, 'sine', 0.3, 0.1), i * 150))
+            end: () => [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playSound(f, 'sine', 0.5, 0.1), i * 150))
         };
 
         function createLetter() {
@@ -169,8 +184,9 @@
             const colors = ['#ff7979', '#badc58', '#7ed6df', '#e056fd', '#f0932b', '#686de0'];
             const color = colors[Math.floor(Math.random() * colors.length)];
             el.style.backgroundColor = color;
-            el.style.boxShadow = `0 10px 0 ${color}aa`;
+            el.style.boxShadow = `0 15px 0 ${color}cc`; // เพิ่มความหนาของเงา
             
+            // สุ่มตำแหน่งโดยเว้นระยะจากขอบจอ
             el.style.left = (15 + Math.random() * 70) + '%';
             el.style.top = (25 + Math.random() * 60) + '%';
             
@@ -191,36 +207,37 @@
             timerEl.innerText = timeLeft;
             overlay.classList.add('hidden');
 
-            // แก้ไข: ปรับจากสร้าง 3 ตัวเป็นสร้าง 4 ตัวเริ่มต้น
             for (let i = 0; i < 4; i++) {
                 letters.push(createLetter());
             }
+
+            // เริ่มเล่นดนตรี
+            clearInterval(bgmInterval);
+            playBGM();
 
             clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
                 timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    endGame();
-                }
+                if (timeLeft <= 0) endGame();
             }, 1000);
         }
 
         function endGame() {
             gameActive = false;
             clearInterval(timerInterval);
+            clearInterval(bgmInterval); // หยุดดนตรี
             sounds.end();
             overlay.classList.remove('hidden');
-            document.querySelector('h1').innerText = "เก่งมากเลย!";
-            document.getElementById('msg-text').innerText = `Your final score is: ${score}`;
-            startBtn.innerText = "เล่นเกมอีกครั้ง";
+            document.querySelector('h1').innerText = "AWESOME!";
+            document.getElementById('msg-text').innerText = `You scored: ${score} points!`;
+            startBtn.innerText = "PLAY AGAIN";
         }
 
         startBtn.addEventListener('click', startGame);
 
         window.addEventListener('keydown', (e) => {
             if (!gameActive) return;
-            
             const key = e.key.toUpperCase();
             if (!/^[A-Z]$/.test(key)) return;
 
@@ -228,9 +245,12 @@
             
             if (index !== -1) {
                 sounds.correct();
-                letters[index].el.remove();
-                letters.splice(index, 1);
-                letters.push(createLetter());
+                letters[index].el.style.transform = 'translate(-50%, -50%) scale(0)';
+                setTimeout(() => {
+                    letters[index].el.remove();
+                    letters.splice(index, 1);
+                    letters.push(createLetter());
+                }, 100);
                 
                 score++;
                 scoreEl.innerText = score;
