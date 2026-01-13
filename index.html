@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alphabet Shooter Game</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #282c34;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            width: 80vw;
+            height: 60vh;
+            border: 2px solid #61dafb;
+            border-radius: 10px;
+            background-color: #20232a;
+        }
+        .letter {
+            position: absolute;
+            font-size: 3rem;
+            font-weight: bold;
+            color: #61dafb;
+            text-shadow: 0 0 10px rgba(97, 218, 251, 0.7);
+            user-select: none;
+        }
+        #stats {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        #timer { color: #ff6b6b; }
+        #score { color: #51cf66; }
+        
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        button {
+            padding: 10px 25px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            background: #61dafb;
+            border: none;
+            border-radius: 5px;
+            color: #282c34;
+            font-weight: bold;
+        }
+        button:hover { background: #4fa8c7; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="stats">
+        เวลา: <span id="timer">60</span> วินาที | 
+        คะแนน: <span id="score">0</span>
+    </div>
+
+    <div id="game-container">
+        <div id="overlay">
+            <h1 id="msg-title">Alphabet Shooter</h1>
+            <p id="msg-result"></p>
+            <button onclick="startGame()">เริ่มเกม</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const overlay = document.getElementById('overlay');
+        const msgTitle = document.getElementById('msg-title');
+        const msgResult = document.getElementById('msg-result');
+
+        let score = 0;
+        let timeLeft = 60;
+        let activeLetters = [];
+        let gameActive = false;
+        let timerInterval;
+
+        function getRandomLetter() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            return chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        function createLetter() {
+            const char = getRandomLetter();
+            const letterEl = document.createElement('div');
+            letterEl.className = 'letter';
+            letterEl.innerText = char;
+            
+            // สุ่มตำแหน่ง
+            const x = Math.random() * (container.clientWidth - 50);
+            const y = Math.random() * (container.clientHeight - 50);
+            
+            letterEl.style.left = `${x}px`;
+            letterEl.style.top = `${y}px`;
+            
+            container.appendChild(letterEl);
+            return { element: letterEl, char: char };
+        }
+
+        function spawnInitialLetters() {
+            container.querySelectorAll('.letter').forEach(el => el.remove());
+            activeLetters = [];
+            for (let i = 0; i < 3; i++) {
+                activeLetters.push(createLetter());
+            }
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            gameActive = true;
+            scoreElement.innerText = score;
+            timerElement.innerText = timeLeft;
+            overlay.classList.add('hidden');
+            
+            spawnInitialLetters();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            overlay.classList.remove('hidden');
+            msgTitle.innerText = "จบเกม!";
+            msgResult.innerText = `คุณทำคะแนนได้: ${score} คะแนน`;
+            container.querySelectorAll('.letter').forEach(el => el.remove());
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+
+            const pressedKey = e.key.toUpperCase();
+            const index = activeLetters.findIndex(l => l.char === pressedKey);
+
+            if (index !== -1) {
+                // ลบตัวอักษรที่กดถูก
+                activeLetters[index].element.remove();
+                activeLetters.splice(index, 1);
+                
+                // เพิ่มคะแนน
+                score++;
+                scoreElement.innerText = score;
+                
+                // สุ่มตัวใหม่มาแทนที่
+                activeLetters.push(createLetter());
+            }
+        });
+    </script>
+</body>
+</html>
