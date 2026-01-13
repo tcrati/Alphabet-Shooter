@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alphabet Shooter - Giant Edition</title>
+    <title>Alpha Blast - เวอร์ชันภาษาไทย</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #f0f9ff;
             --score-color: #4cd137;
             --timer-color: #e84118;
+            --wrong-color: #ff4757;
             --text-main: #2f3640;
         }
 
@@ -51,12 +52,12 @@
 
         .letter {
             position: absolute;
-            font-size: 7rem; /* ขยายขนาดตัวอักษรให้ใหญ่ขึ้นมาก */
+            font-size: 7rem;
             font-weight: 900;
             color: white;
             text-shadow: 5px 5px 0px rgba(0,0,0,0.15);
             border-radius: 35px;
-            width: 160px; /* ขยายขนาดกล่อง */
+            width: 160px;
             height: 160px;
             display: flex;
             align-items: center;
@@ -64,7 +65,6 @@
             transform: translate(-50%, -50%);
             user-select: none;
             transition: transform 0.1s, opacity 0.1s;
-            cursor: pointer;
         }
 
         #overlay {
@@ -73,7 +73,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.96);
+            background: rgba(255, 255, 255, 0.98);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -82,12 +82,22 @@
             text-align: center;
         }
 
+        .result-box {
+            background: #f1f2f6;
+            padding: 20px 40px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 2px dashed #ccc;
+        }
+
+        .mistake-count { color: var(--wrong-color); font-weight: 900; }
+
         button {
             font-family: 'Prompt', sans-serif;
             background: #ffbe76;
             border: none;
             padding: 20px 60px;
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             color: white;
             font-weight: 900;
             border-radius: 30px;
@@ -103,16 +113,23 @@
 <body>
 
     <div id="stats">
-        <div>TIME: <span id="timer">60</span></div>
-        <div>SCORE: <span id="score">0</span></div>
+        <div>เวลา: <span id="timer">60</span></div>
+        <div>คะแนน: <span id="score">0</span></div>
     </div>
 
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 style="font-size: 5rem; color: #4834d4; margin: 0;">ALPHA BLAST!</h1>
-        <p id="msg-text" style="font-size: 1.8rem; color: #686de0; margin-bottom: 40px;">Find and type the 4 big letters!</p>
-        <button id="start-btn">GO!</button>
+        <h1 id="title" style="font-size: 5rem; color: #4834d4; margin: 0;">ALPHA BLAST</h1>
+        <div id="result-area" class="hidden">
+            <div class="result-box">
+                <p style="font-size: 1.5rem; margin: 5px 0;">สรุปคะแนนที่ทำได้</p>
+                <p id="final-score" style="font-size: 4rem; color: var(--score-color); margin: 0; line-height: 1;">0</p>
+                <p style="font-size: 1.2rem; margin-top: 15px;">พิมพ์ผิดไปทั้งหมด: <span id="final-mistakes" class="mistake-count">0</span> ตัว</p>
+            </div>
+        </div>
+        <p id="msg-text" style="font-size: 1.8rem; color: #686de0; margin-bottom: 40px;">พิมพ์ตัวอักษรยักษ์ 4 ตัวที่เห็นให้ไวที่สุด!</p>
+        <button id="start-btn">เริ่มเล่นเกม</button>
     </div>
 
     <script>
@@ -121,8 +138,10 @@
         const timerEl = document.getElementById('timer');
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
+        const resultArea = document.getElementById('result-area');
         
         let score = 0;
+        let mistakes = 0; 
         let timeLeft = 60;
         let gameActive = false;
         let letters = [];
@@ -130,7 +149,6 @@
         let audioCtx;
         let bgmInterval;
 
-        // ฟังก์ชันสร้างเสียงเอฟเฟกต์
         function playSound(freq, type, duration, vol) {
             if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
@@ -145,7 +163,6 @@
             osc.stop(audioCtx.currentTime + duration);
         }
 
-        // ฟังก์ชันดนตรีประกอบ (Simple BGM Loop)
         function playBGM() {
             const melody = [261, 329, 392, 523, 349, 440, 392, 329];
             let step = 0;
@@ -164,7 +181,7 @@
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.setValueAtTime(100, now);
                 gain.gain.setValueAtTime(0.5, now); 
                 gain.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.connect(gain);
@@ -184,9 +201,8 @@
             const colors = ['#ff7979', '#badc58', '#7ed6df', '#e056fd', '#f0932b', '#686de0'];
             const color = colors[Math.floor(Math.random() * colors.length)];
             el.style.backgroundColor = color;
-            el.style.boxShadow = `0 15px 0 ${color}cc`; // เพิ่มความหนาของเงา
+            el.style.boxShadow = `0 15px 0 ${color}cc`;
             
-            // สุ่มตำแหน่งโดยเว้นระยะจากขอบจอ
             el.style.left = (15 + Math.random() * 70) + '%';
             el.style.top = (25 + Math.random() * 60) + '%';
             
@@ -199,19 +215,21 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             score = 0;
+            mistakes = 0;
             timeLeft = 60;
             gameActive = true;
             letters = [];
             gameArea.innerHTML = '';
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
+            
             overlay.classList.add('hidden');
+            resultArea.classList.add('hidden');
 
             for (let i = 0; i < 4; i++) {
                 letters.push(createLetter());
             }
 
-            // เริ่มเล่นดนตรี
             clearInterval(bgmInterval);
             playBGM();
 
@@ -226,12 +244,17 @@
         function endGame() {
             gameActive = false;
             clearInterval(timerInterval);
-            clearInterval(bgmInterval); // หยุดดนตรี
+            clearInterval(bgmInterval);
             sounds.end();
+            
+            document.getElementById('title').innerText = "จบเกมแล้ว!";
+            document.getElementById('final-score').innerText = score;
+            document.getElementById('final-mistakes').innerText = mistakes;
+            document.getElementById('msg-text').innerText = "ฝึกฝนบ่อยๆ จะทำให้พิมพ์เก่งขึ้นนะ!";
+            
             overlay.classList.remove('hidden');
-            document.querySelector('h1').innerText = "AWESOME!";
-            document.getElementById('msg-text').innerText = `You scored: ${score} points!`;
-            startBtn.innerText = "PLAY AGAIN";
+            resultArea.classList.remove('hidden');
+            startBtn.innerText = "เล่นอีกครั้ง";
         }
 
         startBtn.addEventListener('click', startGame);
@@ -247,6 +270,7 @@
                 sounds.correct();
                 letters[index].el.style.transform = 'translate(-50%, -50%) scale(0)';
                 setTimeout(() => {
+                    if(!gameActive) return;
                     letters[index].el.remove();
                     letters.splice(index, 1);
                     letters.push(createLetter());
@@ -256,6 +280,11 @@
                 scoreEl.innerText = score;
             } else {
                 sounds.wrong();
+                mistakes++; 
+                
+                if (score > 0) score--; 
+                scoreEl.innerText = score;
+
                 document.body.style.backgroundColor = '#fab1a0';
                 setTimeout(() => {
                     document.body.style.backgroundColor = '#f0f9ff';
