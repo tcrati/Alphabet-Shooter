@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alpha Blast - Combo Edition</title>
+    <title>Alphabet - V.Thai</title>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -11,7 +11,6 @@
             --score-color: #4cd137;
             --timer-color: #e84118;
             --wrong-color: #ff4757;
-            --combo-color: #f1c40f;
             --text-main: #2f3640;
         }
 
@@ -48,22 +47,6 @@
 
         #timer { color: var(--timer-color); font-size: 2.5rem; }
         #score { color: var(--score-color); font-size: 2.5rem; }
-
-        #combo-ui {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 4rem;
-            font-weight: 900;
-            color: var(--combo-color);
-            text-shadow: 4px 4px 0 rgba(0,0,0,0.1);
-            pointer-events: none;
-            opacity: 0;
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
-        }
-
-        #combo-ui.active { opacity: 1; transform: translateX(-50%) scale(1.2); }
 
         #game-area { position: relative; width: 100vw; height: 100vh; }
 
@@ -107,6 +90,8 @@
             border: 2px dashed #ccc;
         }
 
+        .mistake-count { color: var(--wrong-color); font-weight: 900; }
+
         button {
             font-family: 'Prompt', sans-serif;
             background: #ffbe76;
@@ -132,20 +117,18 @@
         <div>คะแนน: <span id="score">0</span></div>
     </div>
 
-    <div id="combo-ui">COMBO x2</div>
-
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 id="title" style="font-size: 5rem; color: #4834d4; margin: 0;">ALPHA BLAST</h1>
+        <h1 id="title" style="font-size: 5rem; color: #4834d4; margin: 0;">ALPHABET TYPING</h1>
         <div id="result-area" class="hidden">
             <div class="result-box">
-                <p style="font-size: 1.5rem; margin: 5px 0;">คะแนนรวมของคุณ</p>
+                <p style="font-size: 1.5rem; margin: 5px 0;">สรุปคะแนนที่ทำได้</p>
                 <p id="final-score" style="font-size: 4rem; color: var(--score-color); margin: 0; line-height: 1;">0</p>
-                <p style="font-size: 1.2rem; margin-top: 15px;">พิมพ์ผิดไป: <span id="final-mistakes" style="color:red; font-weight:900;">0</span> ตัว</p>
+                <p style="font-size: 1.2rem; margin-top: 15px;">พิมพ์ผิดไปทั้งหมด: <span id="final-mistakes" class="mistake-count">0</span> ตัว</p>
             </div>
         </div>
-        <p id="msg-text" style="font-size: 1.8rem; color: #686de0; margin-bottom: 40px;">พิมพ์ตัวอักษรต่อเนื่องเพื่อเพิ่มคอมโบ!</p>
+        <p id="msg-text" style="font-size: 1.8rem; color: #686de0; margin-bottom: 40px;">พิมพ์ตัวอักษรยักษ์ 4 ตัวที่เห็นให้ไวที่สุด!</p>
         <button id="start-btn">เริ่มเล่นเกม</button>
     </div>
 
@@ -153,14 +136,12 @@
         const gameArea = document.getElementById('game-area');
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
-        const comboEl = document.getElementById('combo-ui');
         const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
         const resultArea = document.getElementById('result-area');
         
         let score = 0;
         let mistakes = 0; 
-        let combo = 0;
         let timeLeft = 60;
         let gameActive = false;
         let letters = [];
@@ -194,13 +175,13 @@
         }
 
         const sounds = {
-            correct: (level) => playSound(500 + (level * 50), 'sine', 0.1, 0.1),
+            correct: () => playSound(880, 'sine', 0.1, 0.1),
             wrong: () => {
                 const now = audioCtx.currentTime;
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(80, now);
+                osc.frequency.setValueAtTime(100, now);
                 gain.gain.setValueAtTime(0.5, now); 
                 gain.gain.linearRampToValueAtTime(0, now + 0.3);
                 osc.connect(gain);
@@ -229,25 +210,18 @@
             return { char, el };
         }
 
-        function updateComboUI() {
-            if (combo >= 2) {
-                comboEl.innerText = `COMBO x${Math.min(combo, 5)}`;
-                comboEl.classList.add('active');
-            } else {
-                comboEl.classList.remove('active');
-            }
-        }
-
         function startGame() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
-            score = 0; mistakes = 0; combo = 0; timeLeft = 60;
-            gameActive = true; letters = [];
+            score = 0;
+            mistakes = 0;
+            timeLeft = 60;
+            gameActive = true;
+            letters = [];
             gameArea.innerHTML = '';
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
-            updateComboUI();
             
             overlay.classList.add('hidden');
             resultArea.classList.add('hidden');
@@ -276,6 +250,7 @@
             document.getElementById('title').innerText = "จบเกมแล้ว!";
             document.getElementById('final-score').innerText = score;
             document.getElementById('final-mistakes').innerText = mistakes;
+            document.getElementById('msg-text').innerText = "ฝึกฝนบ่อยๆ จะทำให้พิมพ์เก่งขึ้นนะ!";
             
             overlay.classList.remove('hidden');
             resultArea.classList.remove('hidden');
@@ -292,13 +267,8 @@
             const index = letters.findIndex(l => l.char === key);
             
             if (index !== -1) {
-                // เพิ่มคอมโบ
-                combo++;
-                const multiplier = Math.min(Math.floor(combo / 2) + 1, 5); // ทุกๆ 2 ครั้งจะเพิ่มตัวคูณ สูงสุด x5
-                
-                sounds.correct(multiplier);
+                sounds.correct();
                 letters[index].el.style.transform = 'translate(-50%, -50%) scale(0)';
-                
                 setTimeout(() => {
                     if(!gameActive) return;
                     letters[index].el.remove();
@@ -306,15 +276,11 @@
                     letters.push(createLetter());
                 }, 100);
                 
-                score += (1 * multiplier); // คะแนนเพิ่มตามตัวคูณคอมโบ
+                score++;
                 scoreEl.innerText = score;
-                updateComboUI();
             } else {
-                // พิมพ์ผิด: รีเซ็ตคอมโบ
                 sounds.wrong();
                 mistakes++; 
-                combo = 0; 
-                updateComboUI();
                 
                 if (score > 0) score--; 
                 scoreEl.innerText = score;
