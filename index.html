@@ -11,12 +11,11 @@
             --score-color: #4cd137;
             --timer-color: #e84118;
             --text-main: #2f3640;
-            --font-family: 'Prompt', sans-serif;
         }
 
         body {
             margin: 0;
-            font-family: var(--font-family);
+            font-family: 'Prompt', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
             display: flex;
@@ -25,10 +24,10 @@
             justify-content: center;
             height: 100vh;
             overflow: hidden;
-            /* พื้นหลังลายจุด */
             background-image: radial-gradient(#dff9fb 20%, transparent 20%), radial-gradient(#dff9fb 20%, transparent 20%);
             background-position: 0 0, 50px 50px;
             background-size: 100px 100px;
+            transition: background-color 0.1s;
         }
 
         #stats {
@@ -41,18 +40,13 @@
             border-radius: 50px;
             box-shadow: 0 8px 0 rgba(0,0,0,0.05);
             font-weight: 600;
-            font-size: 1.1rem;
             z-index: 50;
         }
 
-        #timer { color: var(--timer-color); font-size: 2.2rem; vertical-align: middle; }
-        #score { color: var(--score-color); font-size: 2.2rem; vertical-align: middle; }
+        #timer { color: var(--timer-color); font-size: 2.2rem; }
+        #score { color: var(--score-color); font-size: 2.2rem; }
 
-        #game-area {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-        }
+        #game-area { position: relative; width: 100vw; height: 100vh; }
 
         .letter {
             position: absolute;
@@ -60,16 +54,15 @@
             font-weight: 900;
             color: white;
             text-shadow: 3px 3px 0px rgba(0,0,0,0.1);
-            padding: 15px;
             border-radius: 25px;
-            width: 110px;
-            height: 110px;
+            width: 120px;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
             transform: translate(-50%, -50%);
-            transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             user-select: none;
+            transition: transform 0.1s, opacity 0.1s;
         }
 
         #overlay {
@@ -78,41 +71,29 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 100;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 4rem;
-            font-weight: 900;
-            color: #4834d4;
-            margin-bottom: 10px;
         }
 
         button {
-            font-family: var(--font-family);
+            font-family: 'Prompt', sans-serif;
             background: #ffbe76;
             border: none;
             padding: 15px 50px;
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: white;
             font-weight: 900;
             border-radius: 20px;
             cursor: pointer;
             box-shadow: 0 8px 0 #f0932b;
-            transition: all 0.1s;
         }
 
-        button:active {
-            transform: translateY(4px);
-            box-shadow: 0 4px 0 #f0932b;
-        }
-
+        button:hover { background: #ffca8e; }
+        button:active { transform: translateY(4px); box-shadow: 0 4px 0 #f0932b; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -126,9 +107,9 @@
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 id="title">เกมยิงตัวอักษร</h1>
-        <p style="font-size: 1.4rem; color: #686de0; margin-bottom: 25px;">พิมพ์ตัวอักษรที่เห็นบนหน้าจอให้ไวที่สุด!</p>
-        <button onclick="startGame()">เริ่มเล่นเลย!</button>
+        <h1 style="font-size: 4rem; color: #4834d4; margin: 0;">เกมยิงตัวอักษร</h1>
+        <p id="msg-text" style="font-size: 1.5rem; color: #686de0; margin-bottom: 30px;">พิมพ์ตัวอักษรที่เห็นให้ไวที่สุด!</p>
+        <button id="start-btn">เริ่มเล่นเลย!</button>
     </div>
 
     <script>
@@ -136,18 +117,18 @@
         const scoreEl = document.getElementById('score');
         const timerEl = document.getElementById('timer');
         const overlay = document.getElementById('overlay');
-        const colors = ['#ff7979', '#badc58', '#7ed6df', '#e056fd', '#f0932b', '#686de0'];
-
+        const startBtn = document.getElementById('start-btn');
+        
         let score = 0;
         let timeLeft = 60;
         let gameActive = false;
         let letters = [];
         let timerInterval;
+        let audioCtx;
 
-        // --- ระบบเสียง (อัปเดตเสียง Buzz) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function playSound(freq, type, duration, vol = 0.1) {
+        // ฟังก์ชันสร้างเสียง
+        function playSound(freq, type, duration, vol) {
+            if (!audioCtx) return;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type;
@@ -161,105 +142,50 @@
         }
 
         const sounds = {
-            correct: () => {
-                playSound(523, 'sine', 0.15); // เสียงปี๊บสูง
-            },
+            correct: () => playSound(523, 'sine', 0.1, 0.1),
             wrong: () => {
-                // เสียง Buzz ทุ้มแบบสั่นๆ
                 const now = audioCtx.currentTime;
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                osc.type = 'sawtooth'; // คลื่นแบบฟันเลื่อยให้ความรู้สึก Buzz
-                osc.frequency.setValueAtTime(100, now); // ความถี่ต่ำ (ทุ้ม)
-                osc.frequency.exponentialRampToValueAtTime(40, now + 0.2); 
-                gain.gain.setValueAtTime(0.2, now);
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(100, now);
+                gain.gain.setValueAtTime(0.1, now);
                 gain.gain.linearRampToValueAtTime(0, now + 0.2);
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(now + 0.2);
+                osc.start(); osc.stop(now + 0.2);
             },
-            start: () => playSound(440, 'sine', 0.3),
-            end: () => {
-                [392, 523, 659].forEach((f, i) => setTimeout(() => playSound(f, 'sine', 0.3), i * 150));
-            }
+            end: () => [392, 523, 659].forEach((f, i) => setTimeout(() => playSound(f, 'sine', 0.3, 0.1), i * 150))
         };
 
         function createLetter() {
-            const char = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const char = chars.charAt(Math.floor(Math.random() * chars.length));
             const el = document.createElement('div');
             el.className = 'letter';
             el.innerText = char;
-            const randomColor = colors[Math.floor(Math.random() * colors.length)];
-            el.style.backgroundColor = randomColor;
-            el.style.boxShadow = `0 10px 0 ${randomColor}88`; // ใส่เงาสีเดียวกันแต่โปร่งแสง
             
-            const x = 15 + Math.random() * 70;
-            const y = 25 + Math.random() * 60;
-            el.style.left = `${x}%`;
-            el.style.top = `${y}%`;
+            const colors = ['#ff7979', '#badc58', '#7ed6df', '#e056fd', '#f0932b', '#686de0'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            el.style.backgroundColor = color;
+            el.style.boxShadow = `0 10px 0 ${color}aa`;
+            
+            el.style.left = (15 + Math.random() * 70) + '%';
+            el.style.top = (25 + Math.random() * 60) + '%';
             
             gameArea.appendChild(el);
             return { char, el };
         }
 
         function startGame() {
+            // เริ่มต้นระบบเสียงเมื่อมีการกดปุ่ม
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
-            sounds.start();
+
             score = 0;
             timeLeft = 60;
             gameActive = true;
+            letters = [];
+            gameArea.innerHTML = '';
             scoreEl.innerText = score;
             timerEl.innerText = timeLeft;
-            overlay.classList.add('hidden');
-            gameArea.innerHTML = '';
-            letters = [];
-            for (let i = 0; i < 3; i++) letters.push(createLetter());
-
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) endGame();
-            }, 1000);
-        }
-
-        function endGame() {
-            gameActive = false;
-            clearInterval(timerInterval);
-            sounds.end();
-            overlay.classList.remove('hidden');
-            document.getElementById('title').innerText = "จบเกมแล้ว!";
-            document.getElementById('result-text').innerText = `เย้! หนูได้คะแนนทั้งหมด ${score} คะแนน`;
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-            const key = e.key.toUpperCase();
-            
-            // ป้องกันปุ่มพิเศษอย่าง Shift, Ctrl ไม่ให้เกิดเสียงผิด
-            if (key.length !== 1 || !/[A-Z]/.test(key)) return;
-
-            const index = letters.findIndex(l => l.char === key);
-
-            if (index !== -1) {
-                sounds.correct();
-                const target = letters[index].el;
-                target.style.transform = 'translate(-50%, -50%) scale(0)';
-                setTimeout(() => {
-                    if (!gameActive) return;
-                    target.remove();
-                    letters.splice(index, 1);
-                    letters.push(createLetter());
-                }, 100);
-                score++;
-                scoreEl.innerText = score;
-            } else {
-                sounds.wrong();
-                // เอฟเฟกต์หน้าจอสั่นเล็กน้อยเมื่อกดผิด
-                document.body.style.backgroundColor = '#fab1a0';
-                setTimeout(() => document.body.style.backgroundColor = var(--bg-color), 100);
-            }
-        });
-    </script>
-</body>
-</html>
