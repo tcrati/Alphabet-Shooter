@@ -107,9 +107,9 @@
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 style="font-size: 4rem; color: #4834d4; margin: 0;">Alpha Dash</h1>
-        <p id="msg-text" style="font-size: 1.5rem; color: #686de0; margin-bottom: 30px;">Type the 4 letters you see as fast as you can!</p>
-        <button id="start-btn">PLAY NOW</button>
+        <h1 style="font-size: 4rem; color: #4834d4; margin: 0;">Alphabet Typing</h1>
+        <p id="msg-text" style="font-size: 1.5rem; color: #686de0; margin-bottom: 30px;">พิมพ์ตัวอักษร 4 ตัวที่คุณเห็นให้เร็วที่สุดเท่าที่จะทำได้!</p>
+        <button id="start-btn">เริ่มเล่นกันเลย</button>
     </div>
 
     <script>
@@ -211,9 +211,9 @@
             clearInterval(timerInterval);
             sounds.end();
             overlay.classList.remove('hidden');
-            document.querySelector('h1').innerText = "WELL DONE!";
+            document.querySelector('h1').innerText = "เก่งมากเลย!";
             document.getElementById('msg-text').innerText = `Your final score is: ${score}`;
-            startBtn.innerText = "PLAY AGAIN";
+            startBtn.innerText = "เล่นเกมอีกครั้ง";
         }
 
         startBtn.addEventListener('click', startGame);
