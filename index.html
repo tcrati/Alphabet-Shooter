@@ -3,60 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Alphabet Shooter</title>
+    <title>Alphabet Shooter - Junior</title>
     <style>
         :root {
-            --bg-color: #ffffff;
-            --text-color: #1a1a1a;
-            --accent-color: #000000;
-            --dim-color: #888888;
+            --bg-color: #f0f9ff; /* ฟ้าอ่อนสดใส */
+            --score-color: #4cd137; /* เขียวสด */
+            --timer-color: #e84118; /* แดงส้ม */
+            --text-main: #2f3640;
         }
 
         body {
             margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
-            color: var(--text-color);
+            color: var(--text-main);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100vh;
             overflow: hidden;
-            transition: background-color 0.3s;
+            background-image: radial-gradient(#dff9fb 20%, transparent 20%), radial-gradient(#dff9fb 20%, transparent 20%);
+            background-position: 0 0, 50px 50px;
+            background-size: 100px 100px;
         }
 
         #stats {
             position: absolute;
-            top: 40px;
+            top: 20px;
             display: flex;
-            gap: 40px;
-            font-size: 0.9rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
+            gap: 30px;
+            background: white;
+            padding: 15px 40px;
+            border-radius: 50px;
+            box-shadow: 0 8px 0 rgba(0,0,0,0.05);
+            font-weight: bold;
+            font-size: 1.2rem;
+            z-index: 50;
         }
 
-        .stat-item span {
-            font-weight: bold;
-            display: block;
-            font-size: 1.5rem;
-            text-align: center;
-        }
+        #timer { color: var(--timer-color); font-size: 2rem; }
+        #score { color: var(--score-color); font-size: 2rem; }
 
         #game-area {
             position: relative;
             width: 100vw;
             height: 100vh;
-            cursor: crosshair;
         }
 
         .letter {
             position: absolute;
-            font-size: 2.5rem;
-            font-weight: 300;
+            font-size: 5rem; /* ตัวใหญ่สะใจสำหรับเด็ก */
+            font-weight: 900;
+            color: white;
+            text-shadow: 4px 4px 0px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 20px;
+            background: #7ed6df; /* สีเริ่มต้น */
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transform: translate(-50%, -50%);
-            transition: opacity 0.2s, transform 0.2s;
+            transition: all 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             user-select: none;
+            box-shadow: 0 10px 0 #63bcc4;
         }
 
         #overlay {
@@ -65,36 +77,40 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--bg-color);
+            background: rgba(255, 255, 255, 0.9);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             z-index: 100;
+            text-align: center;
         }
 
         h1 {
-            font-weight: 200;
-            font-size: 3rem;
+            font-size: 4rem;
+            color: #4834d4;
             margin-bottom: 10px;
-            letter-spacing: 5px;
+            text-shadow: 3px 3px 0 #dff9fb;
         }
 
-        p { color: var(--dim-color); margin-bottom: 30px; }
+        p { font-size: 1.5rem; color: #686de0; margin-bottom: 30px; }
 
         button {
-            background: none;
-            border: 1px solid var(--accent-color);
-            padding: 12px 40px;
-            font-size: 1rem;
-            letter-spacing: 2px;
+            background: #ffbe76;
+            border: none;
+            padding: 20px 60px;
+            font-size: 2rem;
+            color: white;
+            font-weight: bold;
+            border-radius: 20px;
             cursor: pointer;
-            transition: all 0.3s;
+            box-shadow: 0 10px 0 #f0932b;
+            transition: all 0.1s;
         }
 
-        button:hover {
-            background: var(--accent-color);
-            color: var(--bg-color);
+        button:active {
+            transform: translateY(5px);
+            box-shadow: 0 5px 0 #f0932b;
         }
 
         .hidden { display: none !important; }
@@ -103,134 +119,12 @@
 <body>
 
     <div id="stats">
-        <div class="stat-item">Time <span id="timer">60</span></div>
-        <div class="stat-item">Score <span id="score">0</span></div>
+        <div>เวลา: <span id="timer">60</span></div>
+        <div>คะแนน: <span id="score">0</span></div>
     </div>
 
     <div id="game-area"></div>
 
     <div id="overlay">
-        <h1 id="title">ALPHABET</h1>
-        <p id="result-text">กดปุ่มตัวอักษรบนคีย์บอร์ดให้ตรงกับที่ปรากฏ</p>
-        <button onclick="startGame()">START GAME</button>
-    </div>
-
-    <script>
-        const gameArea = document.getElementById('game-area');
-        const scoreEl = document.getElementById('score');
-        const timerEl = document.getElementById('timer');
-        const overlay = document.getElementById('overlay');
-        const resultText = document.getElementById('result-text');
-
-        let score = 0;
-        let timeLeft = 60;
-        let gameActive = false;
-        let letters = [];
-        let timerInterval;
-
-        // --- ระบบเสียง (Web Audio API) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
-        function playSound(freq, type, duration) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        const sounds = {
-            correct: () => playSound(880, 'sine', 0.1),
-            wrong: () => playSound(150, 'sawtooth', 0.1),
-            start: () => playSound(440, 'sine', 0.3),
-            end: () => playSound(220, 'sine', 0.5)
-        };
-
-        // --- ระบบเกม ---
-        function createLetter() {
-            const char = String.fromCharCode(65 + Math.floor(Math.random() * 26));
-            const el = document.createElement('div');
-            el.className = 'letter';
-            el.innerText = char;
-            
-            // สุ่มตำแหน่งให้อยู่ในช่วง 10%-90% ของหน้าจอ เพื่อไม่ให้ชิดขอบเกินไป
-            const x = 10 + Math.random() * 80;
-            const y = 20 + Math.random() * 70;
-            
-            el.style.left = `${x}%`;
-            el.style.top = `${y}%`;
-            
-            gameArea.appendChild(el);
-            return { char, el };
-        }
-
-        function spawnLetters() {
-            gameArea.innerHTML = '';
-            letters = [];
-            for (let i = 0; i < 3; i++) {
-                letters.push(createLetter());
-            }
-        }
-
-        function startGame() {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            sounds.start();
-            
-            score = 0;
-            timeLeft = 60;
-            gameActive = true;
-            scoreEl.innerText = score;
-            timerEl.innerText = timeLeft;
-            overlay.classList.add('hidden');
-            
-            spawnLetters();
-
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                timerEl.innerText = timeLeft;
-                if (timeLeft <= 0) endGame();
-            }, 1000);
-        }
-
-        function endGame() {
-            gameActive = false;
-            clearInterval(timerInterval);
-            sounds.end();
-            overlay.classList.remove('hidden');
-            document.getElementById('title').innerText = "FINISH";
-            resultText.innerText = `SCORE: ${score}`;
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (!gameActive) return;
-
-            const key = e.key.toUpperCase();
-            const index = letters.findIndex(l => l.char === key);
-
-            if (index !== -1) {
-                sounds.correct();
-                letters[index].el.style.opacity = '0';
-                letters[index].el.style.transform = 'translate(-50%, -50%) scale(2)';
-                
-                setTimeout(() => {
-                    if (!gameActive) return;
-                    letters[index].el.remove();
-                    letters.splice(index, 1);
-                    letters.push(createLetter());
-                }, 100);
-
-                score++;
-                scoreEl.innerText = score;
-            } else {
-                // กดผิด (Optional: จะหักคะแนนหรือมีเสียงเตือนก็ได้)
-                if(e.key.length === 1) sounds.wrong();
-            }
-        });
-    </script>
-</body>
-</html>
+        <h1 id="title">เกมยิงตัวอักษร!</h1>
+        <p id="result-text">กดปุ่มบนคีย์บอร์ดให้ตรงกับตัวอักษรนะเด็กๆ</p>
