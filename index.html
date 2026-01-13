@@ -128,3 +128,137 @@
     <div id="overlay">
         <h1 id="title">เกมยิงตัวอักษร!</h1>
         <p id="result-text">กดปุ่มบนคีย์บอร์ดให้ตรงกับตัวอักษรนะเด็กๆ</p>
+        <button onclick="startGame()">เริ่มเล่นเลย!</button>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('game-area');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const overlay = document.getElementById('overlay');
+        const resultText = document.getElementById('result-text');
+
+        let score = 0;
+        let timeLeft = 60;
+        let gameActive = false;
+        let letters = [];
+        let timerInterval;
+
+        // สุ่มสีสดใสให้ตัวอักษร
+        const colors = ['#ff7979', '#badc58', '#7ed6df', '#e056fd', '#f0932b', '#686de0'];
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(freq, type, duration, vol = 0.1) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const sounds = {
+            correct: () => {
+                playSound(523.25, 'sine', 0.2); // โน้ต C5
+                setTimeout(() => playSound(659.25, 'sine', 0.2), 50); // โน้ต E5
+            },
+            wrong: () => playSound(110, 'triangle', 0.3, 0.2),
+            start: () => playSound(392, 'square', 0.4, 0.05),
+            end: () => {
+                [261, 329, 392, 523].forEach((f, i) => {
+                    setTimeout(() => playSound(f, 'sine', 0.4), i * 100);
+                });
+            }
+        };
+
+        function createLetter() {
+            const char = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+            const el = document.createElement('div');
+            el.className = 'letter';
+            el.innerText = char;
+            
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            el.style.backgroundColor = randomColor;
+            el.style.boxShadow = `0 10px 0 ${adjustColor(randomColor, -20)}`;
+            
+            const x = 15 + Math.random() * 70;
+            const y = 25 + Math.random() * 60;
+            
+            el.style.left = `${x}%`;
+            el.style.top = `${y}%`;
+            
+            gameArea.appendChild(el);
+            return { char, el };
+        }
+
+        // ฟังก์ชันช่วยทำให้สีเข้มขึ้นสำหรับเงาปุ่ม
+        function adjustColor(hex, amt) {
+            return hex; // ในที่นี้ใช้สีพื้นฐานเพื่อความง่าย หรือจะใส่ฟังก์ชันปรับสีเพิ่มได้
+        }
+
+        function startGame() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            sounds.start();
+            
+            score = 0;
+            timeLeft = 60;
+            gameActive = true;
+            scoreEl.innerText = score;
+            timerEl.innerText = timeLeft;
+            overlay.classList.add('hidden');
+            
+            gameArea.innerHTML = '';
+            letters = [];
+            for (let i = 0; i < 3; i++) {
+                letters.push(createLetter());
+            }
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerEl.innerText = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timerInterval);
+            sounds.end();
+            overlay.classList.remove('hidden');
+            document.getElementById('title').innerText = "เก่งมาก!";
+            resultText.innerText = `หนูทำได้ตั้ง ${score} คะแนนแหนะ!`;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+
+            const key = e.key.toUpperCase();
+            const index = letters.findIndex(l => l.char === key);
+
+            if (index !== -1) {
+                sounds.correct();
+                const target = letters[index].el;
+                target.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                target.style.opacity = '0';
+                
+                setTimeout(() => {
+                    if (!gameActive) return;
+                    target.remove();
+                    letters.splice(index, 1);
+                    letters.push(createLetter());
+                }, 100);
+
+                score++;
+                scoreEl.innerText = score;
+            } else {
+                if(e.key.length === 1) sounds.wrong();
+            }
+        });
+    </script>
+</body>
+</html>
